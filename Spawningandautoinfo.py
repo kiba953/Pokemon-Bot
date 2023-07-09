@@ -7,7 +7,7 @@ import typing
 from typing import Union
 
 
-bot = commands.Bot(command_prefix=['p!','P!'],case_insensitive = True)
+bot = commands.Bot(command_prefix=['p!','P!'],case_insensitive = True,intents = discord.Intents.all())
 
 
 
@@ -42,6 +42,7 @@ async def on_message(message):
 			global oN
 			global id
 			Channel =bot.get_channel(796240947000246294)
+			#replace with your channel id
 			g = random.randint(1,151)
 			cur.execute('''SELECT * FROM pokedex WHERE id =? and Shiny='No';''',(g,))
 			for rows in cur:
@@ -141,7 +142,7 @@ async def catch(ctx,arg):
 				conn.commit()
 				conn.close()
 
-				if (mc%7==0):
+				if (mc%3==0):
 					conn=sqlite3.connect('./database.db')
 					cur=conn.cursor()
 					Channel =bot.get_channel(796240947000246294)
@@ -205,7 +206,7 @@ async def dex(ctx,*args):
 				member = ctx.message.author
 				mem = str(member)
 				name = mem.split('#')
-				embed.set_author(name=f"{name[0]}", icon_url=member.avatar_url)
+				embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
 				await ctx.send(embed=embed,file=file)
 		
 		else:
@@ -231,8 +232,8 @@ async def dex(ctx,*args):
 				member = ctx.message.author
 				mem = str(member)
 				name = mem.split('#')
-				embed.set_author(name=f"{name[0]}", icon_url=member.avatar_url)
-				await ctx.channel.send(embed=embed,file=file)
+				embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
+				await ctx.send(embed=embed,file=file)
 		conn.commit()
 		conn.close()
 	
@@ -257,7 +258,7 @@ async def info(ctx,arg:Union[int,str]):
 			member = ctx.message.author
 			mem = str(member)
 			name = mem.split('#')
-			embed.set_author(name=f"{name[0]}", icon_url=member.avatar_url)
+			embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
 			file = discord.File(rows[10],filename='pok.png')
 			embed.set_image(url='attachment://pok.png')
 			embed.set_footer(text='Displaying Pokémon: '+str(ag)+'/'+str(tp)+'among all your pokémons')
@@ -284,7 +285,7 @@ async def info(ctx,arg:Union[int,str]):
 				member = ctx.message.author
 				mem = str(member)
 				name = mem.split('#')
-				embed.set_author(name=f"{name[0]}", icon_url=member.avatar_url)
+				embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
 				file = discord.File(rows[10],filename='pok.png')
 				embed.set_image(url='attachment://pok.png')
 				embed.set_footer(text='Displaying Pokémon: '+str(tp)+'/'+str(tp)+'among all your pokémons')
@@ -473,7 +474,7 @@ async def start(ctx):
 	embed = discord.Embed(color=discord.Color(0xFFFDD0))
 	embed.add_field(name='Welcome to the world of pokémon!',value='To begin play,choose one of these pokémon\n with the `p!pick <pokémon>`'+' command,like this:\n`p!pick squirtle`',inline=True)
 	embed.add_field(name='Generation I:',value='Bulbasaur | Squirtle | Charmander',inline=True)
-	embed.set_author(name=f'Hello {name} !',icon_url=member.avatar_url)
+	embed.set_author(name=f'Hello {name} !',icon_url=member.display_avatar)
 	await ctx.send(embed=embed)
  	
    			
@@ -592,5 +593,5 @@ def randomIV(x1,x2,x3,x4,x5,x6):
 					
 					
 					
-bot.run('Type Token here')
+bot.run('insert bot token here')
 			
