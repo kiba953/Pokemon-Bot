@@ -398,5 +398,5 @@ async def stop(ctx):
         channel_ids[ctx.channel.id] = False
         await ctx.send("Spawning has been stopped in this channel.")
 
-bot.run('NzU5ODA0NDE5ODAwODI1ODY2.Gt_CKX.9c5UlGf_WIY0z3HkIHsShNfIbEHnL5AjNCIOOw')
+bot.run('Your Bot token')
 			
