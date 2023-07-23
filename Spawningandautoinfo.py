@@ -3,89 +3,37 @@ from discord.ext import commands
 import sqlite3
 import random
 import math
-import typing
+import asyncio
+
 from typing import Union
 
-
-bot = commands.Bot(command_prefix=['p!','P!'],case_insensitive = True,intents = discord.Intents.all())
-
-
+bot = commands.Bot(command_prefix=['p!', 'P!'], case_insensitive=True, intents=discord.Intents.all())
+urlid, pokemonsp, spawning_active,channel_ids = {} , {}, False, {}
 
 
-s= False
-mc = 1
-name=''
-url=''
 @bot.event
-async def on_message(message):
-	global mc
-	global s
-	
-	if not message.author.bot:
-		if message.content.lower().startswith('p!catch'):
-			yoy=1
-		else:
-			mc+=1
-		if (mc%7==0):
-			conn=sqlite3.connect('./database.db')
-			cur=conn.cursor()
-			global name
-			global url
-			global fname
-			global gname
-			global g
-			global Channel
-			global jname
-			global jname2
-			global jname3
-			global other
-			global oN
-			global id
-			Channel =bot.get_channel(796240947000246294)
-			#replace with your channel id
-			g = random.randint(1,151)
-			cur.execute('''SELECT * FROM pokedex WHERE id =? and Shiny='No';''',(g,))
-			for rows in cur:
-				id = rows[0]
-				name = rows[1]
-				gname = rows[2].lower()
-				fname= rows[4].lower()
-				url=rows[12]
-				jname=rows[3].lower()
-				jname2=rows[16].lower()
-				jname3 = rows[17].lower()
-				oN=rows[15].lower()
-				embed = discord.Embed(color=discord.Color(0xFFFDD0),title= 'A wild poke woah')
-				file= discord.File(url,filename='poke.png')
-				embed.set_image(url='attachment://poke.png')
-				await Channel.send(embed=embed,file=file)
-				s = True
-			conn.commit()
-			conn.close()
-				
+async def on_ready():
+    print(f"We have logged in as {bot.user}")
+    bot.loop.create_task(spawn_pokemon())
 
-		if mc==500:
-			mc=1
-		await bot.process_commands(message)
-				
+async def spawn_pokemon_in_channel(channel, conn, cur):
+	g = random.randint(1, 151)
+	cur.execute('''SELECT * FROM pokedex WHERE id =? and Shiny='No';''', (g,))
+	for rows in cur:
+		pnames = [rows[1].lower(), rows[2].lower(), rows[4].lower(), rows[3].lower(), rows[16].lower(), rows[17].lower(), rows[15].lower()]
+		pokemonsp[channel.id]=pnames
+		urlid[channel.id] = [rows[12],rows[0]]
+		embed = discord.Embed(color=discord.Color(0xFFFDD0), title='A wild poke woah')
+		file = discord.File(urlid[channel.id][0], filename='poke.png')
+		embed.set_image(url='attachment://poke.png')
+		await channel.send(embed=embed, file=file)
+
 @bot.command()
 async def catch(ctx,arg):
-		global Channel
-		if ctx.channel == Channel:
-			global g
-			global gname
-			global name
-			global s
-			global mc
-			global fname
-			global jname
-			global url
-			global U
-			global id
-			global jname2
-			global jname3
-			global oN
-			mc+=1
+		print("ok")
+		if True:
+			print("another ok")
+			print(pokemonsp)
 			go =False
 			conn=sqlite3.connect('./database.db')
 			cur4 = conn.cursor()
@@ -93,21 +41,14 @@ async def catch(ctx,arg):
 			for rows in cur4:
 				go = True
 			if go==True:
-				if s == True:
-					if arg.lower() in (name.lower(),gname,fname,jname,jname2,jname3,oN):
+				if pokemonsp[ctx.channel.id]!='':
+					if arg.lower() in pokemonsp[ctx.channel.id]:
 						x=random.randint(1,2)
-						z1=random.randint(1,11)#spatk
-						z2=random.randint(1,11)#atk
-						z3=random.randint(1,11) #speed
-						z4=random.randint(1,10) #def
-						z5=random.randint(1,11)#spdef
-						z6=random.randint(1,10)#hp
-						n1,n2,n3,n4,n5,n6 = randomIV(z1,z2,z3,z4,z5,z6)
-						total = n1+n2+n3+n4+n5+n6
-						m = total*10000
-						n=m/186            #(186= sum of ivs)
-						u= (math.floor(n))
-						h=u/100
+						n1, n2, n3, n4, n5, n6 = [random.randint(0, 31) for _ in range(6)]
+						h = round((n1+n2+n3+n4+n5+n6)/186*100,2)
+						id = urlid[ctx.channel.id][1]
+						url  = urlid[ctx.channel.id][0]
+						name = pokemonsp[ctx.channel.id][0].capitalize()
 						user = ctx.author.id
 						cur2 = conn.cursor()
 						cur2.execute('''SELECT * FROM info WHERE user_id=? LIMIT 1 OFFSET 0;''',(user,))
@@ -134,49 +75,14 @@ async def catch(ctx,arg):
 							cur.execute('''INSERT INTO info(dex_id,user_id,Hp,Atk,Def,SpAtk,SpDef,Speed,Number,Shiny,url,name,sort,num)VALUES(?,?,?,?,?,?,?,?,?,'Yes',?,?,?,?);''',(id,user,n1,n2,n3,n4,n5,n6,h,ur,name,so,num+1,))
 							member = ctx.author
 							await ctx.send('Congratulations '+ member.mention+'! You caught a level 3 Shiny '+name+'!')
-							s = False
+						pokemonsp[ctx.channel.id]=''
 					else:
 						await ctx.send('Try again')
-				else:
-					await ctx.send('You need to pick a starter!')
-				conn.commit()
-				conn.close()
-
-				if (mc%3==0):
-					conn=sqlite3.connect('./database.db')
-					cur=conn.cursor()
-					Channel =bot.get_channel(796240947000246294)
-					g = random.randint(1,151)
-					cur.execute('''SELECT * FROM pokedex WHERE id =? and Shiny='No';''',(g,))
-					for rows in cur:
-						id = rows[0]
-						name = rows[1]
-						gname = rows[2].lower()
-						fname= rows[4].lower()
-						url=rows[12]
-						jname=rows[3].lower()
-						jname1=rows[16].lower()
-						jname2 = rows[17].lower()
-						oN=rows[15].lower()
-						embed = discord.Embed(color=discord.Color(0xFFFDD0),title= 'A wild poke woah')
-						file= discord.File(url,filename='poke.png')
-						embed.set_image(url='attachment://poke.png')
-						await ctx.send(embed=embed,file=file)
-						s = True
-					conn.commit()
-					conn.close()
-						
+			else:
+				await ctx.send('You need to pick a starter!')
+			conn.commit()
+			conn.close()
 	  
-
-					
-					
-					
-					
-					
-					
-					
-					
-
 
 @bot.command(aliases=['pokedex'])
 async def dex(ctx,*args):
@@ -190,24 +96,6 @@ async def dex(ctx,*args):
 			cur.execute('''SELECT * FROM pokedex WHERE (LOWER(name) =? or LOWER(German_name)=? or LOWER(Japanese_name)=? or LOWER(French_name)=? or LOWER(Japanese_name2)=? or LOWER(Japanese_name3)=? or LOWER(Other)=?)and Shiny = 'Yes';''',b)
 			for rows in cur:
 				embed = discord.Embed(colour=discord.Colour(0x00FFFF),title=' Professor Oak\n#'+str(rows[0])+' - '+rows[1]+' ⭐',description=rows[11])
-				embed.add_field(name='Alternative Names',value='🇩🇪 '+rows[2] +'\n🇯🇵 '+rows[3] +'/'+rows[16]+'/'+rows[17]+'\n🇲🇫 '+rows[4])
-				embed.add_field(name='Base Stats',value='**HP: **'+str(rows[5])+'\n**Attack: **'+str(rows[6])+'\n**Defense: **'+str(rows[7])+'\n**Sp. Atk: **'+str(rows[8])+'\n**Sp. Def: **'+str(rows[9])+'\n**Speed: **'+str(rows[10]))
-				if rows[18] !='No':
-					embed.add_field(name='Types:',value=rows[13]+' | '+rows[18])
-				else:
-					embed.add_field(name='Types:',value=rows[13])
-				file=discord.File(rows[12],filename='poke.png')
-				embed.set_image(url='attachment://poke.png')
-				cur1 = conn.cursor()
-				cur1.execute('''SELECT COUNT(*) FROM info WHERE dex_id=?;''',(rows[0],))
-				for row in cur1:
-					tot = row[0]
-				embed.set_footer(text='You\'ve caught'+str(tot)+' of this pokémon!')
-				member = ctx.message.author
-				mem = str(member)
-				name = mem.split('#')
-				embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
-				await ctx.send(embed=embed,file=file)
 		
 		else:
 			a=args[0].lower()
@@ -216,64 +104,43 @@ async def dex(ctx,*args):
 			cur.execute("""SELECT * FROM pokedex WHERE (LOWER(name) =? or LOWER(German_name)=? or LOWER(Japanese_name)=? or LOWER(French_name)=? or LOWER(Japanese_name2)=? or LOWER(Japanese_name3)=? or LOWER(Other)=?)and Shiny = 'No';""",b)
 			for rows in cur:
 				embed = discord.Embed(colour=discord.Colour(0x00FFFF),title=' Professor Oak\n#'+str(rows[0])+' - '+rows[1],description=rows[11])
-				embed.add_field(name='Alternative Names',value='🇩🇪 '+rows[2] +'\n🇯🇵 '+rows[3]+'/'+rows[16]+'/'+rows[17]+'\n🇲🇫 '+rows[4])
-				embed.add_field(name='Base Stats',value='**HP: **'+str(rows[5])+'\n**Attack: **'+str(rows[6])+'\n**Defense: **'+str(rows[7])+'\n**Sp. Atk: **'+str(rows[8])+'\n**Sp. Def: **'+str(rows[9])+'\n**Speed: **'+str(rows[10]))
-				if rows[18] != 'No':
-					embed.add_field(name='Types:',value=rows[13]+' | '+rows[18])
-				else:
-					embed.add_field(name='Types:',value=rows[13])
-				file=discord.File(rows[12],filename='poke.png')
-				embed.set_image(url='attachment://poke.png')
-				cur1 = conn.cursor()
-				cur1.execute('''SELECT COUNT(*) FROM info WHERE dex_id=?;''',(rows[0],))
-				for row in cur1:
-					tot = row[0]
-				embed.set_footer(text='You\'ve caught '+str(tot)+' of this pokémon!')
-				member = ctx.message.author
-				mem = str(member)
-				name = mem.split('#')
-				embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
-				await ctx.send(embed=embed,file=file)
-		conn.commit()
-		conn.close()
-	
 
-
-
-
-@bot.command()
-async def info(ctx,arg:Union[int,str]):
-	if (isinstance(arg,int)):
-		conn = sqlite3.connect('./database.db')
-		user = ctx.author.id
-		cur = conn.cursor()
+		embed.add_field(name='Alternative Names',value='🇩🇪 '+rows[2] +'\n🇯🇵 '+rows[3] +'/'+rows[16]+'/'+rows[17]+'\n🇲🇫 '+rows[4])
+		embed.add_field(name='Base Stats',value='**HP: **'+str(rows[5])+'\n**Attack: **'+str(rows[6])+'\n**Defense: **'+str(rows[7])+'\n**Sp. Atk: **'+str(rows[8])+'\n**Sp. Def: **'+str(rows[9])+'\n**Speed: **'+str(rows[10]))
+		if rows[18] !='No':
+			embed.add_field(name='Types:',value=rows[13]+' | '+rows[18])
+		else:
+			embed.add_field(name='Types:',value=rows[13])
+		file=discord.File(rows[12],filename='poke.png')
+		embed.set_image(url='attachment://poke.png')
 		cur1 = conn.cursor()
-		cur1.execute('''SELECT COUNT(*) FROM info WHERE user_id=?;''',(user,))
+		cur1.execute('''SELECT COUNT(*) FROM info WHERE dex_id=?;''',(rows[0],))
 		for row in cur1:
-			tp = row[0]
+					tot = row[0]
+		embed.set_footer(text='You\'ve caught '+str(tot)+' of this pokémon!')
+		member = ctx.message.author
+		mem = str(member)
+		name = mem.split('#')
+		embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
+		await ctx.send(embed=embed,file=file)
+		conn.close()
+
+@bot.command(aliases=['i'])
+async def info(ctx,arg:Union[int,str]):
+	conn = sqlite3.connect('./database.db')
+	user = ctx.author.id
+	cur = conn.cursor()
+	cur1 = conn.cursor()
+	cur1.execute('''SELECT COUNT(*) FROM info WHERE user_id=?;''',(user,))
+	for rows in cur1:
+		tp = rows[0]
+	if (isinstance(arg,int)):
 		cur.execute('''SELECT * FROM info WHERE user_id=? LIMIT 1 OFFSET ?;''',(user,arg-1,))
 		for rows in cur:
-			ag=rows[13]
 			embed = discord.Embed(color=discord.Color(0xFFFDD0),description='\n**HP: **'+str(rows[2])+'/31\n**Attack: **'+str(rows[3])+'/31\n**Defense: **'+str(rows[4])+'/31\n**Sp. Atk: **'+str(rows[5])+'/31\n**Sp. Def: **'+str(rows[6])+'/31\n**Speed: **'+str(rows[7])+'/31\n**Total IV: **'+str(rows[8]))
-			member = ctx.message.author
-			mem = str(member)
-			name = mem.split('#')
-			embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
-			file = discord.File(rows[10],filename='pok.png')
-			embed.set_image(url='attachment://pok.png')
-			embed.set_footer(text='Displaying Pokémon: '+str(ag)+'/'+str(tp)+'among all your pokémons')
-			await ctx.send(embed=embed,file=file)
-		conn.commit()
-		conn.close()
+
 	elif(isinstance(arg,str)):
-		if arg.lower() == 'latest':
-			conn = sqlite3.connect('./database.db')
-			user = ctx.author.id
-			cur = conn.cursor()
-			cur1 = conn.cursor()
-			cur1.execute('''SELECT COUNT(*) FROM info WHERE user_id=?;''',(user,))
-			for rows in cur1:
-				tp = rows[0]
+		if arg.lower() in ['latest','l']:
 			cur.execute('''SELECT * FROM info WHERE user_id=? LIMIT 1 OFFSET ?;''',(user,tp-1,))
 			for rows in cur:
 				if rows[9]=='Yes':
@@ -281,24 +148,16 @@ async def info(ctx,arg:Union[int,str]):
 				else:
 					embed = discord.Embed(color=discord.Color(0xFFFDD0), title= rows[11],description='\n**HP: **'+str(rows[2])+'/31\n**Attack: **'+str(rows[3])+'/31\n**Defense: **'+str(rows[4])+'/31\n**Sp. Atk: **'+str(rows[5])+'/31\n**Sp. Def: **'+str(rows[6])+'/31\n**Speed: **'+str(rows[7])+'/31\n**Total IV: **'+str(rows[8]))
 				
-
-				member = ctx.message.author
-				mem = str(member)
-				name = mem.split('#')
-				embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
-				file = discord.File(rows[10],filename='pok.png')
-				embed.set_image(url='attachment://pok.png')
-				embed.set_footer(text='Displaying Pokémon: '+str(tp)+'/'+str(tp)+'among all your pokémons')
-				await ctx.send(embed=embed,file=file)
+	member = ctx.message.author
+	name = str(member).split('#')
+	embed.set_author(name=f"{name[0]}", icon_url=member.display_avatar)
+	file = discord.File(rows[10],filename='pok.png')
+	embed.set_image(url='attachment://pok.png')
+	embed.set_footer(text='Displaying Pokémon: '+str(tp)+' / '+str(tp)+' among all your pokémons')
+	await ctx.send(embed=embed,file=file)
+	conn.commit()
+	conn.close()
    	    	
-
-   		
-   		
-
-
-
-
-
 @bot.command()
 async def pokemon(ctx,*args):
 	if len(args) != 0:
@@ -416,27 +275,20 @@ async def pokemon(ctx,*args):
    					
    					
  
-   					
-   			
-   			
-   			
 @bot.command()
 async def sort(ctx,arg):
 	conn = sqlite3.connect('./database.db')
+	id = ctx.author.id
+	cur = conn.cursor()
 	if arg.lower() =='iv':
-		id = ctx.author.id
-		cur = conn.cursor()
 		cur.execute('''UPDATE info SET sort=? WHERE user_id =?;''',('iv',id,))
 		await ctx.send('Your Pokemon have been sorted by there iv')
-
 	if arg.lower() =='id':
-		id = ctx.author.id
-		cur = conn.cursor()
 		cur.execute('''UPDATE info SET sort=? WHERE user_id =?;''',('id',id,))
 		await ctx.send('Your Pokemon have been sorted by their id')
 	conn.commit()
-	conn.cursor()
    			
+
 @bot.command()
 async def pick(ctx,args):
 	conn = sqlite3.connect('./database.db')
@@ -498,13 +350,7 @@ async def redeem(ctx,*args):
 		id = rows[0]
 	if (neme in (names.lower())):
 		x=random.randint(1,2)
-		z1=random.randint(1,11)#spatk
-		z2=random.randint(1,11)#atk
-		z3=random.randint(1,11) #speed
-		z4=random.randint(1,10) #def
-		z5=random.randint(1,11)#spdef
-		z6=random.randint(1,10)#hp
-		n1,n2,n3,n4,n5,n6 = randomIV(z1,z2,z3,z4,z5,z6)
+		n1, n2, n3, n4, n5, n6 = [random.randint(0, 31) for _ in range(6)]
 		total = n1+n2+n3+n4+n5+n6
 		m = total*10000
 		n=m/186            #(186= sum of ivs)
@@ -525,73 +371,32 @@ async def redeem(ctx,*args):
 	conn.commit()
 	conn.close()
 
-		
-def randomIV(x1,x2,x3,x4,x5,x6):
-	if 1==x1 or x3 ==2:
-		n1=random.randint(22,31)
-	elif 5 ==x1 or 9==x1:
-		n1=random.randint(18,25)
-	elif x1==6 or x1==4:
-		n1 =random.randint(0,8)
-	elif x1 ==10 or x1==8:
-		n1= random.randint(6,13)
-	else:
-		n1 =random.randint(10,19)
-	if 1==x2 or x2==2:
-		n2=random.randint(24,31)
-	elif 5 ==x2 or x3==3:
-		n2=random.randint(18,25)
-	elif x2==6 or x2 ==4:
-		n2=random.randint(0,8)
-	elif x2==10 or x2==8:
-		n2= random.randint(6,13)
-	else:
-		n2 =random.randint(10,19)
-	if 1==x3 or x3==2:
-		n3=random.randint(22,31)
-	elif 5 ==x3 or x3==3:
-		n3=random.randint(18,25)
-	elif x3==6 or x3==4:
-		n3 =random.randint(0,8)
-	elif x3==10 or x3==8:
-		n3= random.randint(7,13)
-	else:
-		n3 =random.randint(10,19)
-	if 1==x4 or x4 ==2:
-		n4=random.randint(24,31)
-		
-	elif 5 ==x4 or  x4==3:
-		n4=random.randint(18,26)
-	elif x4==6 or x4==4:
-		n4 =random.randint(0,8)
-	elif x4==7 or x4==8:
-		n4= random.randint(8,13)
-	else:
-		n4 =random.randint(10,20)
-	if 1==x5 or x5==2:
-		n5=random.randint(24,31)
-	elif 5 ==x5 or 9==x5:
-		n5=random.randint(19,26)
-	elif x5==6 or x5==4:
-		n5 =random.randint(0,7)
-	elif x5==10 or x5==8:
-		n5= random.randint(7,13)
-	else:
-		n5 =random.randint(10,20)
-	if 1==x6 or x6==2:
-		n6=random.randint(24,31)
-	elif 5 ==x6 or 9==x6:
-		n6=random.randint(19,26)
-	elif x6==6 or x6==4:
-		n6 =random.randint(0,7)
-	elif x6==7 or x6==10:
-		n6= random.randint(7,13)
-	else:
-		n6 =random.randint(10,19)
-	return n1,n2,n3,n4,n5,n6
-					
-					
-					
-					
-bot.run('insert bot token here')
+async def spawn_pokemon():
+    await bot.wait_until_ready()
+
+    while not bot.is_closed():
+        for channel_id, is_active in channel_ids.items():
+            if is_active:
+                channel = bot.get_channel(channel_id)
+                if channel:
+                    conn = sqlite3.connect('./database.db')
+                    cur = conn.cursor()
+                    await spawn_pokemon_in_channel(channel, conn, cur)
+                    conn.close()
+
+        await asyncio.sleep(15)
+
+@bot.command()
+async def use(ctx, arg):
+    if arg.lower() == "incense":
+        channel_ids[ctx.channel.id] = True
+        await ctx.send("Incense is now active. Pokémon spawning has started in this channel!")
+
+@bot.command()
+async def stop(ctx):
+    if ctx.channel.id in channel_ids:
+        channel_ids[ctx.channel.id] = False
+        await ctx.send("Spawning has been stopped in this channel.")
+
+bot.run('NzU5ODA0NDE5ODAwODI1ODY2.Gt_CKX.9c5UlGf_WIY0z3HkIHsShNfIbEHnL5AjNCIOOw')
 			
